@@ -145,17 +145,20 @@ class BankSystem:
         if not self.db.execute_query(query, (user_id, account_number), fetch = True):
             return False
         
-        #Update Balance
-        query = "UPDATE users SET balance = balance - %s WHERE user_id = %s"
-        if not self.db.execute_query(query, (amount, user_id)):
-            return False
-        
-        #Record transaction
+        # Record transaction first
         query = """
         INSERT INTO transactions (user_id, amount, beneficiary_account, transaction_date)
         VALUES (%s, %s, %s, %s)
         """
-        return self.db.execute_query(query, (user_id, amount, account_number, datetime.now())) > 0
+        transaction_success = self.db.execute_query(query, (user_id, amount, account_number, datetime.now()))
+        
+        # If transaction was recorded successfully, update the balance
+        if transaction_success:
+            query = "UPDATE users SET balance = balance - %s WHERE user_id = %s"
+            return self.db.execute_query(query, (amount, user_id)) > 0
+    
+        # If transaction failed, don't subtract the amount
+        return False
 
     def change_card_pin(self, user_id, card_number_last4, new_pin):
         """Update card PIN."""
