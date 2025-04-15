@@ -48,7 +48,7 @@ def main():
                 else:
                     print("Registration failed. Username may exist.")
             else: 
-                print("Invalid input. Check Aadhar (12 digits), mobile (10 digits).")
+                print("Invalid input. Check Aadhaar (12 digits), mobile (10 digits).")
 
         elif choice == "2":
             # Login
@@ -69,7 +69,7 @@ def main():
                             print("\nAccount Info:")
                             print(f"Name: {info['name']}")
                             print(f"Address: {info['address']}")
-                            print(f"Aadhar: {info['aadhar']}")
+                            print(f"Aadhaar: {info['aadhaar']}")
                             print(f"Mobile: {info['mobile']}")
                             print(f"Balance: ${info['balance']:.2f}")
                         
@@ -91,7 +91,7 @@ def main():
                             # Add beneficiary
                             name = input("Beneficiary Name: ")
                             account_number = input("Beneficiary Account Number: ")
-                            if bank.add_beneficiary(user_id, name, account_number):
+                            if bank.add_beneficiaries(user_id, name, account_number):
                                 print("Beneficiary added!")
                                 print("\nUpdated Beneficiaries:")
                                 for b in bank.get_beneficiaries(user_id):
