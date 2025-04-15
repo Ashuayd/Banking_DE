@@ -21,7 +21,7 @@ class BankSystem:
     
     def _generate_cvv(self):
         """Generate a 3 digit CVV."""
-        return ''.join(random.choices(string.digitss, k=3))
+        return ''.join(random.choices(string.digits, k=3))
     
     def _generate_pin(self):
         """Generate a 4 digit PIN."""
@@ -94,7 +94,7 @@ class BankSystem:
     
     def get_beneficiaries(self, user_id) :
         """Fetch list of beneficiaries"""
-        query = "SELECT name, account_number, FROM beneficiaries WHERE user_id = %s"
+        query = "SELECT name, account_number FROM beneficiaries WHERE user_id = %s"
         return self.db.execute_query(query, (user_id,), fetch =True) or []
 
     def get_cards(self, user_id):
@@ -155,7 +155,7 @@ class BankSystem:
         INSERT INTO transactions (user_id, amount, beneficiary_account, transaction_date)
         VALUES (%s, %s, %s, %s)
         """
-        return self.db.execute_query(query, (amount, account_number, datetime.now())) > 0
+        return self.db.execute_query(query, (user_id, amount, account_number, datetime.now())) > 0
 
     def change_card_pin(self, user_id, card_number_last4, new_pin):
         """Update card PIN."""

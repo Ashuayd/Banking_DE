@@ -3,7 +3,7 @@ import re
 def validate_registration(username, password, name, address, aadhaar, mobile):
     """Validate registration input data."""
 
-    if not re.match(r"^[a-ZA-Z0-9]{3,20}$", username) :
+    if not re.match(r"^[a-zA-Z0-9]{3,20}$", username) :
         return False
     
     if len(password) < 6:
@@ -25,7 +25,7 @@ def validate_registration(username, password, name, address, aadhaar, mobile):
 def validate_login(username, password):
     """Validate login credentials format."""
 
-    if not re.match("^[a-ZA-Z0-9]{3,20}$", username) :
+    if not re.match("^[a-zA-Z0-9]{3,20}$", username) :
         return False
     
     if len(password) < 6 :

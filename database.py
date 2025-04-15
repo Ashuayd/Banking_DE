@@ -40,6 +40,8 @@ class Database:
                 cursor.execute(query, params or ())
                 if fetch:
                     result = cursor.fetchall()
+                    return result
+                else:
                     conn.commit()
                     return cursor.rowcount
             
