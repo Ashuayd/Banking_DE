@@ -3,6 +3,13 @@ import random
 import string
 import hashlib
 from datetime import datetime
+import os
+import logging
+from validation import validate_account_number
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class BankSystem:
     """Main Class to handle Banking Operations."""
@@ -81,13 +88,16 @@ class BankSystem:
 
         return True
     
-    def login(self, username, password) :
-        """Authenticate user and return user_id if succesful."""
-
+    def login(self, username, password):
         hashed_password = self._hash_password(password)
         query = "SELECT user_id FROM users WHERE username = %s AND password = %s"
-        result = self.db.execute_query(query, (username, hashed_password), fetch=True )
-        return result[0]['user_id'] if result else None
+        try:
+            result = self.db.execute_query(query, (username, hashed_password), fetch=True)
+            logger.info(f"Login query result for {username}: {result}")
+            return result[0]['user_id'] if result else None
+        except Exception as e:
+            logger.error(f"Login error for {username}: {e}")
+            return None
     
     def check_balance(self, username):
         query = "SELECT balance FROM users WHERE username = %s"
