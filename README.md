@@ -24,3 +24,5 @@ A Python-based banking system with registration, login, and account management f
   ```bash
   pip install mysql-connector-python fastapi uvicorn pydantic
 
+  python jose
+

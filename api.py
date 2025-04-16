@@ -69,6 +69,48 @@ class Transfer(BaseModel):
         if v <= 0:
             raise ValueError("Amount must be positive")
         return v
+    
+# Pydantic Models
+class Beneficiary(BaseModel):
+    name: str
+    account_number: str
+
+    @field_validator("account_number")
+    @classmethod
+    def validate_account_number(cls, v):
+        if len(v) != 10 or not v.isdigit():
+            raise ValueError("Account number must be 10 digits")
+        return v
+
+class UpdateAccount(BaseModel):
+    name: str = ""
+    address: str = ""
+    mobile: str = ""
+
+    @field_validator("mobile")
+    @classmethod
+    def validate_mobile(cls, v):
+        if v and (len(v) != 10 or not v.isdigit()):
+            raise ValueError("Mobile must be 10 digits or empty")
+        return v
+
+class ChangePin(BaseModel):
+    card_number_last4: str
+    new_pin: str
+
+    @field_validator("card_number_last4")
+    @classmethod
+    def validate_card_number_last4(cls, v):
+        if len(v) != 4 or not v.isdigit():
+            raise ValueError("Last 4 digits of card number must be 4 digits")
+        return v
+
+    @field_validator("new_pin")
+    @classmethod
+    def validate_new_pin(cls, v):
+        if len(v) != 4 or not v.isdigit():
+            raise ValueError("PIN must be 4 digits")
+        return v
 
 
 def create_access_token(data: dict):
@@ -161,3 +203,47 @@ async def get_balance(user_id: int = Depends(get_current_user)):
     except Exception as e:
         print(f"Balance Error for user_id {user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+    
+
+@app.get("/beneficiaries")
+async def get_beneficiaries(user_id: int = Depends(get_current_user)):
+    beneficiaries = bank.get_beneficiaries(user_id)
+    return {"status": "success", "beneficiaries": beneficiaries}
+
+@app.get("/cards")
+async def get_cards(user_id: int = Depends(get_current_user)):
+    cards = bank.get_cards(user_id)
+    # Mask sensitive fields
+    for card in cards:
+        card['pin'] = "****"
+        card['cvv'] = "***"
+    return {"status": "success", "cards": cards}
+
+@app.post("/beneficiaries")
+async def add_beneficiary(beneficiary: Beneficiary, user_id: int = Depends(get_current_user)):
+    success = bank.add_beneficiaries(user_id, beneficiary.name, beneficiary.account_number)
+    if success:
+        return {"status": "success", "message": f"Added beneficiary {beneficiary.name}"}
+    return {"status": "failed", "message": "Failed to add beneficiary. Invalid account number or name."}
+
+@app.put("/account")
+async def update_account(update: UpdateAccount, user_id: int = Depends(get_current_user)):
+    success = bank.update_account_info(user_id, update.name, update.address, update.mobile)
+    if success:
+        return {"status": "success", "message": "Account information updated"}
+    return {"status": "failed", "message": "No valid fields provided to update"}
+
+@app.post("/cards/change-pin")
+async def change_card_pin(pin_change: ChangePin, user_id: int = Depends(get_current_user)):
+    success = bank.change_card_pin(user_id, pin_change.card_number_last4, pin_change.new_pin)
+    if success:
+        return {"status": "success", "message": "Card PIN updated"}
+    return {"status": "failed", "message": "Failed to update PIN. Invalid card or PIN."}
+
+@app.post("/cards")
+async def add_credit_card(user_id: int = Depends(get_current_user)):
+    success = bank.add_credit_card(user_id)
+    if success:
+        return {"status": "success", "message": "Credit card added"}
+    return {"status": "failed", "message": "Failed to add credit card"}    
+    
