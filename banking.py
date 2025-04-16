@@ -33,10 +33,10 @@ class BankSystem:
     
     def register_user(self, username, password, name, address, aadhaar, mobile):
         """Register a new user with one credit and one debit card."""
-        #Check if ussername exists
-
+        # Check if username exists
         query = "SELECT user_id FROM users WHERE username = %s"
-        if self.db.execute_query(query, (username,), fetch= True):
+        if self.db.execute_query(query, (username,), fetch=True):
+            print("Username already exists.")
             return False
         
         # Hash Password
@@ -45,39 +45,48 @@ class BankSystem:
         # Generate Account Number
         account_number = self._generate_account_number()
 
-        # Insert User
-        query = """
-        INSERT INTO users (username, password, name, address, aadhar, mobile, account_number, balance)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """
+        # Use a single connection
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            try:
+                # Start transaction
+                conn.autocommit = False
 
-        params = (username, hashed_password, name, address, aadhaar, mobile, account_number, 1000.0)
-        user_id = self.db.execute_query(query,params)
+                # Insert User
+                query = """
+                INSERT INTO users (username, password, name, address, aadhaar, mobile, account_number, balance)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                params = (username, hashed_password, name, address, aadhaar, mobile, account_number, 1000.0)
+                cursor.execute(query, params)
+                user_id = cursor.lastrowid  # Get inserted ID directly
 
-        if not user_id:
+                if not user_id:
+                    conn.rollback()
+                    return False
 
-            return False
+                # Add a debit card
+                query = """
+                INSERT INTO cards (user_id, card_number, card_type, pin, cvv)
+                VALUES (%s, %s, %s, %s, %s)
+                """
+                cursor.execute(query, (user_id, self._generate_card_number(), 'Debit', self._generate_pin(), self._generate_cvv()))
+
+                # Add a credit card
+                cursor.execute(query, (user_id, self._generate_card_number(), 'Credit', self._generate_pin(), self._generate_cvv()))
+
+                # Commit transaction
+                conn.commit()
+                return True
         
-        #Get user_id (MySQL return rowcount, so query again)
-
-        query = "SELECT user_id FROM users WHERE username = %s"
-        result = self.db.execute_query(query,(username,), fetch=True)
-        user_id = result[0]['user_id']
-
-        #Add a debit card
-
-        query = """
-        INSERT INTO cards (user_id, card_number, card_type, pin, cvv)
-        VALUES (%s, %s, %s, %s, %s)
-        """
-        self.db.execute_query(query, (user_id, self._generate_card_number(), 'Debit', self._generate_pin(), self._generate_cvv()))
-
-        #Add a credit card
-
-        self.db.execute_query(query, (user_id, self._generate_card_number(), 'Credit', self._generate_pin(), self._generate_cvv()))
-
-        return True
-    
+            except Exception as e:
+                # Rollback
+                conn.rollback()
+                print(f"Error occurred: {e}")
+                return False
+            finally:
+                cursor.close()
+        
     def login(self, username, password) :
         """Authenticate user and return user_id if succesful."""
 

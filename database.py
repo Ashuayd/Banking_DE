@@ -14,24 +14,48 @@ class Database:
             'database' : 'Bash_db',
             'raise_on_warnings' : True
         }
+        self.connection = None
 
     @contextmanager
     def get_connection(self):
         """Context manager for database connection."""
 
-        connect = None
         try:
-            connect = mysql.connector.connect(**self.config)
-            yield connect
+            self.connection = mysql.connector.connect(**self.config)
+            yield self.connection
 
         except Error as e:
             print(f"Database error: {e}")
         
         finally:
-            if connect and connect.is_connected():
-                connect.close()
+            if self.connection and self.connection.is_connected():
+                self.connection.close()
+                self.connection = None
 
-    
+    def start_transaction(self):
+        """Start a transaction."""
+        try:
+            self.connection.autocommit = False
+            print("Transaction started.")
+        except Exception as e:
+            print(f"Error starting transaction: {e}")
+
+    def commit_transaction(self):
+        """Commit the current transaction."""
+        try:
+            self.connection.commit()
+            print("Transaction committed.")
+        except Exception as e:
+            print(f"Error committing transaction: {e}")
+
+    def rollback_transaction(self):
+        """Rollback the current transaction."""
+        try:
+            self.connection.rollback()
+            print("Transaction rolled back.")
+        except Exception as e:
+            print(f"Error rolling back transaction: {e}")
+   
     def execute_query(self, query,params = None, fetch = False):
         """Execute a query and return results if fetch is True."""
         with self.get_connection() as conn:

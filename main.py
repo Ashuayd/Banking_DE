@@ -43,6 +43,7 @@ def main():
 
             if validate_registration(username, password, name, address, aadhaar, mobile):
                 success = bank.register_user(username, password, name, address, aadhaar, mobile)
+                
                 if success:
                     print("Registration successfull! Please login")
                 else:
