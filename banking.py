@@ -96,9 +96,121 @@ class BankSystem:
             return result[0]["balance"]
         return None
     
+    def deposit(self, user_id, amount, account_number):
+        if amount <= 0:
+            return False
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                conn.autocommit = False
+                query = "UPDATE users SET balance = balance + %s WHERE user_id = %s"
+                cursor.execute(query, (amount, user_id))
+                if cursor.rowcount == 0:
+                    conn.rollback()
+                    return False
+                query = """
+                INSERT INTO transactions (user_id, type, amount, account_number)
+                VALUES (%s, %s, %s, %s)
+                """
+                cursor.execute(query, (user_id, 'deposit', amount, account_number))
+                conn.commit()
+                return True
+            except:
+                conn.rollback()
+                return False
+            finally:
+                cursor.close()
+
+    def withdraw(self, user_id, amount, account_number):
+        if amount <= 0:
+            return False
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                conn.autocommit = False
+                query = "SELECT balance FROM users WHERE user_id = %s"
+                cursor.execute(query, (user_id,))
+                balance = cursor.fetchone()
+                if not balance or balance[0] < amount:
+                    conn.rollback()
+                    return False
+                query = "UPDATE users SET balance = balance - %s WHERE user_id = %s"
+                cursor.execute(query, (amount, user_id))
+                query = """
+                INSERT INTO transactions (user_id, type, amount, account_number)
+                VALUES (%s, %s, %s, %s)
+                """
+                cursor.execute(query, (user_id, 'withdrawal', amount, account_number))
+                conn.commit()
+                return True
+            except:
+                conn.rollback()
+                return False
+            finally:
+                cursor.close()
+
+    def transfer_funds(self, user_id, account_number, amount):
+            """Transfer funds to a beneficiary and record transaction."""
+            if amount <= 0:
+                return False
+            
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor(dictionary=True)
+                try:
+                    conn.autocommit = False
+                    # Check sender's balance and account
+                    query = "SELECT balance, account_number FROM users WHERE user_id = %s"
+                    cursor.execute(query, (user_id,))
+                    sender = cursor.fetchone()
+                    if not sender or sender['balance'] < amount:
+                        conn.rollback()
+                        return False
+                    
+                    # Verify beneficiary
+                    query = "SELECT id FROM beneficiaries WHERE user_id = %s AND account_number = %s"
+                    cursor.execute(query, (user_id, account_number))
+                    if not cursor.fetchone():
+                        conn.rollback()
+                        return False
+                    
+                    # Find recipient user
+                    query = "SELECT user_id FROM users WHERE account_number = %s"
+                    cursor.execute(query, (account_number,))
+                    recipient = cursor.fetchone()
+                    if not recipient or recipient['user_id'] == user_id:
+                        conn.rollback()
+                        return False
+                    
+                    # Update sender balance
+                    query = "UPDATE users SET balance = balance - %s WHERE user_id = %s"
+                    cursor.execute(query, (amount, user_id))
+                    
+                    # Update recipient balance
+                    query = "UPDATE users SET balance = balance + %s WHERE user_id = %s"
+                    cursor.execute(query, (amount, recipient['user_id']))
+                    
+                    # Record sender transaction
+                    query = """
+                    INSERT INTO transactions (user_id, type, amount, related_account, transaction_date)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(query, (user_id, 'transfer', amount, account_number, datetime.now()))
+                    
+                    # Record recipient transaction
+                    cursor.execute(query, (recipient['user_id'], 'transfer', amount, sender['account_number'], datetime.now()))
+                    
+                    conn.commit()
+                    return True
+                except:
+                    conn.rollback()
+                    return False
+                finally:
+                    cursor.close()
+
+    
     def get_account_info(self, user_id) :
         """Fetch account informations."""
-        query = "SELECT name, address, aadhaar, mobile, balance FROM users WHERE user_id = %s"
+        query = "SELECT username, name, address, aadhaar, mobile, balance FROM users WHERE user_id = %s"
         result = self.db.execute_query(query, (user_id,), fetch=True)
         return result[0] if result else {}
     
@@ -130,7 +242,7 @@ class BankSystem:
             updates['address'] = address
 
         if mobile.strip():
-            updates['mobile'] = address
+            updates['mobile'] = mobile
 
         if not updates:
             return False
@@ -140,33 +252,7 @@ class BankSystem:
         params = list(updates.values()) + [user_id]
         return self.db.execute_query(query, params) > 0
     
-    def transfer_funds(self, user_id, account_number, amount):
-        """Transfer funds to a beneficary and record transation."""
-        if amount <= 0:
-            return False
-        
-        #Check Balance
-        info = self.get_account_info(user_id)
-        if info['balance'] < amount:
-            return False
-        
-        #Verify beneficiary
-        query = "SELECT id FROM beneficiaries WHERE user_id = %s AND account_number = %s"
-        if not self.db.execute_query(query, (user_id, account_number), fetch = True):
-            return False
-        
-        #Update Balance
-        query = "UPDATE users SET balance = balance - %s WHERE user_id = %s"
-        if not self.db.execute_query(query, (amount, user_id)):
-            return False
-        
-        #Record transaction
-        query = """
-        INSERT INTO transactions (user_id, amount, beneficiary_account, transaction_date)
-        VALUES (%s, %s, %s, %s)
-        """
-        return self.db.execute_query(query, (user_id, amount, account_number, datetime.now())) > 0
-
+    
     def change_card_pin(self, user_id, card_number_last4, new_pin):
         """Update card PIN."""
         from validation import validate_pin
