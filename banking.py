@@ -36,8 +36,11 @@ class BankSystem:
         #Check if ussername exists
 
         query = "SELECT user_id FROM users WHERE username = %s"
-        if self.db.execute_query(query, (username,), fetch= True):
+        result = self.db.execute_query(query, (username,), fetch=True)
+        print("Username check result:", result)
+        if result:
             return False
+
         
         # Hash Password
         hashed_password = self._hash_password(password)
@@ -47,7 +50,7 @@ class BankSystem:
 
         # Insert User
         query = """
-        INSERT INTO users (username, password, name, address, aadhar, mobile, account_number, balance)
+        INSERT INTO users (username, password, name, address, aadhaar, mobile, account_number, balance)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
 
@@ -85,6 +88,13 @@ class BankSystem:
         query = "SELECT user_id FROM users WHERE username = %s AND password = %s"
         result = self.db.execute_query(query, (username, hashed_password), fetch=True )
         return result[0]['user_id'] if result else None
+    
+    def check_balance(self, username):
+        query = "SELECT balance FROM users WHERE username = %s"
+        result = self.db.execute_query(query, (username,), fetch=True)
+        if result:
+            return result[0]["balance"]
+        return None
     
     def get_account_info(self, user_id) :
         """Fetch account informations."""

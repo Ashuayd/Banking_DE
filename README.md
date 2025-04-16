@@ -22,4 +22,5 @@ A Python-based banking system with registration, login, and account management f
 - MySQL Server
 - Required Python packages:
   ```bash
-  pip install mysql-connector-python
+  pip install mysql-connector-python fastapi uvicorn pydantic
+
