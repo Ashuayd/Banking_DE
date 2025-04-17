@@ -4,6 +4,11 @@ from banking import BankSystem
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
+import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 bank = BankSystem()
@@ -120,7 +125,25 @@ def create_access_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-
+# async def get_current_user(token: str = Depends(oauth2_scheme)):
+#     credentials_exception = HTTPException(
+#         status_code=status.HTTP_401_UNAUTHORIZED,
+#         detail="Could not validate credentials",
+#         headers={"WWW-Authenticate": "Bearer"},
+#     )
+#     try:
+#         print(f"Attempting to decode token: {token[:20]}...")
+#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#         user_id: str = payload.get("sub")
+#         print(f"Decoded payload: {payload}")
+#         if user_id is None:
+#             print("No user_id in payload")
+#             raise credentials_exception
+#         return int(user_id)
+#     except (JWTError, ValueError) as e:
+#         print(f"JWT Decode Error: {str(e)}")
+#         raise credentials_exception
+    
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -128,17 +151,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        print(f"Attempting to decode token: {token[:20]}...")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
-        print(f"Decoded payload: {payload}")
         if user_id is None:
-            print("No user_id in payload")
             raise credentials_exception
         return int(user_id)
-    except (JWTError, ValueError) as e:
-        print(f"JWT Decode Error: {str(e)}")
+    except JWTError:
         raise credentials_exception
+
 
 
 @app.post("/register")
@@ -151,16 +171,38 @@ async def register_user(user: User):
     return {"status": "failed", "message": "Registration failed. Username or Aadhaar may exist."}
 
 
+# @app.post("/login")
+# async def login_user(login: LoginRequest):
+#     user_id = bank.login(login.username, login.password)
+#     if user_id: 
+#         access_token = create_access_token(data={"sub": str(user_id)})
+#         return {"access_token": access_token, "token_type": "bearer"}
+#     raise HTTPException(
+#         status_code=status.HTTP_401_UNAUTHORIZED,
+#         detail="Incorrect username or password"
+#     )
+
 @app.post("/login")
 async def login_user(login: LoginRequest):
-    user_id = bank.login(login.username, login.password)
-    if user_id: 
-        access_token = create_access_token(data={"sub": str(user_id)})
-        return {"access_token": access_token, "token_type": "bearer"}
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Incorrect username or password"
-    )
+    logger.info(f"Login attempt for username: {login.username}")
+    try:
+        user_id = bank.login(login.username, login.password)
+        if user_id:
+            access_token = create_access_token(data={"sub": str(user_id)})
+            logger.info(f"Login successful for user_id: {user_id}")
+            return {"access_token": access_token, "token_type": "bearer"}
+        logger.warning(f"Login failed for username: {login.username}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password"
+        )
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
+
 
 
 @app.post("/deposit")
