@@ -8,7 +8,7 @@ class Database:
     def __init__(self):
         self.config = {
             'host': 'localhost',  
-            'port': 3306,  # Default MySQL port
+            'port': 3307,  # Default MySQL port
             'user': 'root',
             'password' : 'root@123',
             'database' : 'Bash_db',
@@ -21,11 +21,13 @@ class Database:
 
         connect = None
         try:
+            print("Attempting DB connection with config:", self.config)
             connect = mysql.connector.connect(**self.config)
-            yield connect
+            yield connect  #Only reached if connection is succesful
 
         except Error as e:
             print(f"Database error: {e}")
+            raise   #Re-raise the error so that the context manager fails correctly
         
         finally:
             if connect and connect.is_connected():

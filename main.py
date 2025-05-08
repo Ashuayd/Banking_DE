@@ -87,6 +87,18 @@ def main():
                             for c in cards:
                                 print(f"- {c['card_type']} Card (****{c['card_number'][-4:]}), PIN: {c['pin']}, CVV: {c['cvv']}")
                         
+                        # elif user_choice == "4":
+                        #     # Add beneficiary
+                        #     name = input("Beneficiary Name: ")
+                        #     account_number = input("Beneficiary Account Number: ")
+                        #     if bank.add_beneficiaries(user_id, name, account_number):
+                        #         print("Beneficiary added!")
+                        #         print("\nUpdated Beneficiaries:")
+                        #         for b in bank.get_beneficiaries(user_id):
+                        #             print(f"- {b['name']} (Account: {b['account_number']})")
+                        #     else:
+                        #         print("Failed to add beneficiary.")
+
                         elif user_choice == "4":
                             # Add beneficiary
                             name = input("Beneficiary Name: ")
@@ -94,10 +106,11 @@ def main():
                             if bank.add_beneficiaries(user_id, name, account_number):
                                 print("Beneficiary added!")
                                 print("\nUpdated Beneficiaries:")
-                                for b in bank.get_beneficiaries(user_id):
+                                beneficiaries = bank.get_beneficiaries(user_id)
+                                for b in beneficiaries:
                                     print(f"- {b['name']} (Account: {b['account_number']})")
                             else:
-                                print("Failed to add beneficiary.")
+                                print("Failed to add beneficiary. Ensure the account number is 10 digits and not your own account.")
                         
                         elif user_choice == "5":
                             # Update account info
@@ -113,8 +126,29 @@ def main():
                             else:
                                 print("Update failed.")
                         
+                        # elif user_choice == "6":
+                        #     # Transfer funds
+                        #     account_number = input("Beneficiary Account Number: ")
+                        #     amount = input("Amount to Transfer: ")
+                        #     try:
+                        #         amount = float(amount)
+                        #         result = bank.transfer_funds(user_id, account_number, amount)
+                        #         if result is True:
+                        #             print("Transfer successful!")
+                        #             info = bank.get_account_info(user_id)
+                        #             print(f"New Balance: ${info['balance']:.2f}")
+                        #         else:
+                        #             error_message = result[1] if isinstance(result, tuple) else "main.py : Transfer failed. Check account number or balance."
+                        #             print(error_message)
+                        #     except ValueError:
+                        #         print("Invalid amount.")
+
                         elif user_choice == "6":
                             # Transfer funds
+                            print("\nYour Beneficiaries:")
+                            beneficiaries = bank.get_beneficiaries(user_id)
+                            for b in beneficiaries:
+                                print(f"- {b['name']} (Account: {b['account_number']})")
                             account_number = input("Beneficiary Account Number: ")
                             amount = input("Amount to Transfer: ")
                             try:
@@ -124,9 +158,11 @@ def main():
                                     info = bank.get_account_info(user_id)
                                     print(f"New Balance: ${info['balance']:.2f}")
                                 else:
-                                    print("Transfer failed. Check account number or balance.")
+                                    print("Transfer failed. Check account number, balance, or ensure it's not your own account.")
                             except ValueError:
                                 print("Invalid amount.")
+                            except Exception as e:
+                                print(f"Transfer failed due to an error: {e}")
                         
                         elif user_choice == "7":
                             # Change card MPIN

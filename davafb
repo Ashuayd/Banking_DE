@@ -1,0 +1,79 @@
+[1mdiff --git a/Banking_Ashutosh_Yadav.sql b/Banking_Ashutosh_Yadav.sql[m
+[1mnew file mode 100644[m
+[1mindex 0000000..c24d6c7[m
+[1m--- /dev/null[m
+[1m+++ b/Banking_Ashutosh_Yadav.sql[m
+[36m@@ -0,0 +1,40 @@[m
+[32m+[m[32mCREATE DATABASE Bash_db;[m
+[32m+[m
+[32m+[m[32mCREATE TABLE users ([m
+[32m+[m	[32muser_id INT AUTO_INCREMENT PRIMARY KEY,[m
+[32m+[m[32m    username VARCHAR(20) UNIQUE NOT NULL,[m
+[32m+[m[32m    password VARCHAR(64) NOT NULL,[m
+[32m+[m[32m    name VARCHAR(100) NOT NULL,[m
+[32m+[m[32m    address VARCHAR(200) NOT NULL,[m
+[32m+[m[32m    aadhaar VARCHAR(12) NOT NULL,[m
+[32m+[m[32m    mobile VARCHAR(10) NOT NULL,[m
+[32m+[m[32m    account_number VARCHAR(10) UNIQUE NOT NULL,[m
+[32m+[m[32m    balance DECIMAL(10, 2) DEFAULT 100.00[m
+[32m+[m[32m);[m
+[32m+[m[41m [m
+[32m+[m[32mCREATE TABLE cards ([m
+[32m+[m	[32mcard_id INT AUTO_INCREMENT PRIMARY KEY,[m
+[32m+[m[32m    user_id INT NOT NULL,[m
+[32m+[m[32m    card_number VARCHAR(16) UNIQUE NOT NULL,[m
+[32m+[m[32m    card_type ENUM('Debit','Credit') NOT NULL,[m
+[32m+[m[32m    pin VARCHAR(4) NOT NULL,[m
+[32m+[m[32m    cvv VARCHAR(3) NOT NULL,[m
+[32m+[m[32m    FOREIGN KEY(user_id) REFERENCES users(user_id)[m
+[32m+[m[32m);[m
+[32m+[m
+[32m+[m[32mCREATE TABLE transactions ([m
+[32m+[m	[32mtransaction_id INT AUTO_INCREMENT PRIMARY KEY,[m
+[32m+[m[32m    user_id INT NOT NULL,[m
+[32m+[m[32m    amount DECIMAL(10, 2) NOT NULL,[m
+[32m+[m[32m    beneficiary_account VARCHAR(10) NOT NULL,[m
+[32m+[m[32m    transaction_date DATETIME NOT NULL,[m
+[32m+[m[32m    FOREIGN KEY (user_id) REFERENCES users(user_id)[m
+[32m+[m[32m);[m
+[32m+[m
+[32m+[m[32mCREATE TABLE beneficiaries ([m
+[32m+[m	[32mid INT AUTO_INCREMENT PRIMARY KEY,[m
+[32m+[m[32m    user_id INT NOT NULL,[m
+[32m+[m[32m    name VARCHAR(100) NOT NULL,[m
+[32m+[m[32m    account_number VARCHAR(10) NOT NULL,[m
+[32m+[m[32m    FOREIGN KEY (user_id) REFERENCES users(user_id)[m
+[32m+[m[32m);[m
+[1mdiff --git a/test_db.py b/test_db.py[m
+[1mnew file mode 100644[m
+[1mindex 0000000..a2e5c87[m
+[1m--- /dev/null[m
+[1m+++ b/test_db.py[m
+[36m@@ -0,0 +1,26 @@[m
+[32m+[m[32mfrom database import Database[m
+[32m+[m
+[32m+[m[32mdb = Database()[m
+[32m+[m
+[32m+[m[32m# Insert a user[m
+[32m+[m[32minsert_query = """[m
+[32m+[m[32mINSERT INTO users (username, password, name, address, aadhaar, mobile, account_number, balance)[m
+[32m+[m[32mVALUES (%s, %s, %s, %s, %s, %s, %s, %s)[m
+[32m+[m[32m"""[m
+[32m+[m[32mparams = ([m
+[32m+[m[32m    "alice123",        # username: ≤ 20 chars, unique[m
+[32m+[m[32m    "securepass123",   # password: ≤ 64 chars[m
+[32m+[m[32m    "Alice Smith",     # name: ≤ 100 chars[m
+[32m+[m[32m    "123 Main St",     # address: ≤ 200 chars[m
+[32m+[m[32m    "123456789012",    # aadhaar: 12 chars[m
+[32m+[m[32m    "9876543210",      # mobile: 10 chars[m
+[32m+[m[32m    "ACC1234567",      # account_number: ≤ 10 chars, unique[m
+[32m+[m[32m    500.00             # balance: decimal[m
+[32m+[m[32m)[m
+[32m+[m[32mrow_count = db.execute_query(insert_query, params=params)[m
+[32m+[m[32mprint(f"Inserted {row_count} row(s)")[m
+[32m+[m
+[32m+[m[32m# Verify[m
+[32m+[m[32mselect_query = "SELECT username, name, balance FROM users"[m
+[32m+[m[32mresult = db.execute_query(select_query, fetch=True)[m
+[32m+[m[32mprint("Users:", result)[m
+\ No newline at end of file[m

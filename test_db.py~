@@ -1,0 +1,6 @@
+from database import Database
+
+db = Database()
+query = "SELECT 1 AS test"
+result = db.execute_query(query, fetch=True)
+print(result)  # Should print [{'test': 1}]
